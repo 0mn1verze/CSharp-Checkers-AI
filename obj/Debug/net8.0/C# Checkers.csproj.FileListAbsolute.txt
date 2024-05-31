@@ -1,0 +1,14 @@
+D:\Programming\C# Checkers\bin\Debug\net8.0\C# Checkers.exe
+D:\Programming\C# Checkers\bin\Debug\net8.0\C# Checkers.deps.json
+D:\Programming\C# Checkers\bin\Debug\net8.0\C# Checkers.runtimeconfig.json
+D:\Programming\C# Checkers\bin\Debug\net8.0\C# Checkers.dll
+D:\Programming\C# Checkers\bin\Debug\net8.0\C# Checkers.pdb
+D:\Programming\C# Checkers\obj\Debug\net8.0\C# Checkers.GeneratedMSBuildEditorConfig.editorconfig
+D:\Programming\C# Checkers\obj\Debug\net8.0\C# Checkers.AssemblyInfoInputs.cache
+D:\Programming\C# Checkers\obj\Debug\net8.0\C# Checkers.AssemblyInfo.cs
+D:\Programming\C# Checkers\obj\Debug\net8.0\C# Checkers.csproj.CoreCompileInputs.cache
+D:\Programming\C# Checkers\obj\Debug\net8.0\C# Checkers.dll
+D:\Programming\C# Checkers\obj\Debug\net8.0\refint\C# Checkers.dll
+D:\Programming\C# Checkers\obj\Debug\net8.0\C# Checkers.pdb
+D:\Programming\C# Checkers\obj\Debug\net8.0\C# Checkers.genruntimeconfig.cache
+D:\Programming\C# Checkers\obj\Debug\net8.0\ref\C# Checkers.dll
