@@ -6,8 +6,7 @@ public class MoveGen(Board board)
     public Colour sideToMove = board.sideToMove;
     public MoveList moveList = new();
     public Move rootJump = new(0);
-    public const uint Mask3 = 0x70707070;
-    public const uint Mask5 = 0x0E0E0E0E;
+
     public static int Offset(Direction direction) => Move.JumpAddDir[(int)direction];
     public static bool ValidDirection(Square from, Direction direction)
     {
@@ -25,14 +24,14 @@ public class MoveGen(Board board)
         uint wKing = board.wOcc & board.kings;
 
         AddMoves(nOcc >> 4 & board.wOcc, 4);
-        AddMoves((nOcc & Mask3) >> 3 & board.wOcc, 3);
-        AddMoves((nOcc & Mask5) >> 5 & board.wOcc, 5);
+        AddMoves((nOcc & Board.Mask3) >> 3 & board.wOcc, 3);
+        AddMoves((nOcc & Board.Mask5) >> 5 & board.wOcc, 5);
 
         if (wKing != 0)
         {
             AddMoves(nOcc << 4 & wKing, -4);
-            AddMoves((nOcc & Mask5) << 3 & wKing, -3);
-            AddMoves((nOcc & Mask3) << 5 & wKing, -5);
+            AddMoves((nOcc & Board.Mask5) << 3 & wKing, -3);
+            AddMoves((nOcc & Board.Mask3) << 5 & wKing, -5);
         }
     }
 
@@ -42,14 +41,14 @@ public class MoveGen(Board board)
         uint bKing = board.bOcc & board.kings;
 
         AddMoves(nOcc << 4 & board.bOcc, -4);
-        AddMoves((nOcc & Mask5) << 3 & board.bOcc, -3);
-        AddMoves((nOcc & Mask3) << 5 & board.bOcc, -5);
+        AddMoves((nOcc & Board.Mask5) << 3 & board.bOcc, -3);
+        AddMoves((nOcc & Board.Mask3) << 5 & board.bOcc, -5);
 
         if (bKing != 0)
         {
             AddMoves(nOcc >> 4 & bKing, 4);
-            AddMoves((nOcc & Mask3) >> 3 & bKing, 3);
-            AddMoves((nOcc & Mask5) >> 5 & bKing, 5);
+            AddMoves((nOcc & Board.Mask3) >> 3 & bKing, 3);
+            AddMoves((nOcc & Board.Mask5) >> 5 & bKing, 5);
         }
     }
 
@@ -61,12 +60,12 @@ public class MoveGen(Board board)
         uint temp = nOcc >> 4 & board.bOcc;
         if (temp != 0)
         {
-            AddJumps((temp & Mask3) >> 3 & board.wOcc, 7);
-            AddJumps((temp & Mask5) >> 5 & board.wOcc, 9);
+            AddJumps((temp & Board.Mask3) >> 3 & board.wOcc, 7);
+            AddJumps((temp & Board.Mask5) >> 5 & board.wOcc, 9);
         }
-        temp = (nOcc & Mask3) >> 3 & board.bOcc;
+        temp = (nOcc & Board.Mask3) >> 3 & board.bOcc;
         if (temp != 0) AddJumps(temp >> 4 & board.wOcc, 7);
-        temp = (nOcc & Mask5) >> 5 & board.bOcc;
+        temp = (nOcc & Board.Mask5) >> 5 & board.bOcc;
         if (temp != 0) AddJumps(temp >> 4 & board.wOcc, 9);
 
         if (wKing != 0)
@@ -74,12 +73,12 @@ public class MoveGen(Board board)
             temp = nOcc << 4 & board.bOcc;
             if (temp != 0)
             {
-                AddJumps((temp & Mask5) << 3 & wKing, -7);
-                AddJumps((temp & Mask3) << 5 & wKing, -9);
+                AddJumps((temp & Board.Mask5) << 3 & wKing, -7);
+                AddJumps((temp & Board.Mask3) << 5 & wKing, -9);
             }
-            temp = (nOcc & Mask5) << 3 & board.bOcc;
+            temp = (nOcc & Board.Mask5) << 3 & board.bOcc;
             if (temp != 0) AddJumps(temp << 4 & wKing, -7);
-            temp = (nOcc & Mask3) << 5 & board.bOcc;
+            temp = (nOcc & Board.Mask3) << 5 & board.bOcc;
             if (temp != 0) AddJumps(temp << 4 & wKing, -9);
         }
     }
@@ -92,12 +91,12 @@ public class MoveGen(Board board)
         uint temp = nOcc << 4 & board.wOcc;
         if (temp != 0)
         {
-            AddJumps((temp & Mask5) << 3 & board.bOcc, -7);
-            AddJumps((temp & Mask3) << 5 & board.bOcc, -9);
+            AddJumps((temp & Board.Mask5) << 3 & board.bOcc, -7);
+            AddJumps((temp & Board.Mask3) << 5 & board.bOcc, -9);
         }
-        temp = (nOcc & Mask5) << 3 & board.wOcc;
+        temp = (nOcc & Board.Mask5) << 3 & board.wOcc;
         if (temp != 0) AddJumps(temp << 4 & board.bOcc, -7);
-        temp = (nOcc & Mask3) << 5 & board.wOcc;
+        temp = (nOcc & Board.Mask3) << 5 & board.wOcc;
         if (temp != 0) AddJumps(temp << 4 & board.bOcc, -9);
 
         if (bKing != 0)
@@ -105,12 +104,12 @@ public class MoveGen(Board board)
             temp = nOcc >> 4 & board.wOcc;
             if (temp != 0)
             {
-                AddJumps((temp & Mask3) >> 3 & bKing, 7);
-                AddJumps((temp & Mask5) >> 5 & bKing, 9);
+                AddJumps((temp & Board.Mask3) >> 3 & bKing, 7);
+                AddJumps((temp & Board.Mask5) >> 5 & bKing, 9);
             }
-            temp = (nOcc & Mask3) >> 3 & board.wOcc;
+            temp = (nOcc & Board.Mask3) >> 3 & board.wOcc;
             if (temp != 0) AddJumps(temp >> 4 & bKing, 7);
-            temp = (nOcc & Mask5) >> 5 & board.wOcc;
+            temp = (nOcc & Board.Mask5) >> 5 & board.wOcc;
             if (temp != 0) AddJumps(temp >> 4 & bKing, 9);
         }
     }
