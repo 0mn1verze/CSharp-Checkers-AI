@@ -252,7 +252,7 @@ public class Game
 
         PVLine childPV = new();
         bool pvNode = alpha + 1 < beta && !cutNode;
-        bool rootNode = depth == 0;
+        bool rootNode = ply == 0;
         Move bestMove = new(0);
         int value = -INF;
         int ttValue = INVALID_VAL;
