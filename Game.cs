@@ -570,8 +570,8 @@ public class Game
             Environment.Exit(0);
         }
 
-        Console.WriteLine("Press any key to continue");
-        Console.ReadKey();
+        // Console.WriteLine("Press any key to continue");
+        // Console.ReadKey();
     }
 
     public void ComputerTurn()
