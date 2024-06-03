@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Microsoft.VisualBasic;
 
 public class SearchStats
 {
@@ -57,7 +56,8 @@ public class Game
     public const int INF = 50000;
     public const int MATE = INF - MAX_DEPTH;
     public const int INVALID_VAL = 50001;
-    public const int TIME_ALLOWED = 2000;
+    public const int TIME_ALLOWED = 500;
+    public const bool SHOW_SEARCH = false;
     public bool forceJump = false;
     public Board board = new Board();
     public int moveCount = 0;
@@ -377,7 +377,6 @@ public class Game
     public Move SearchPosition()
     {
         nodes = 0;
-        Print();
 
         Move bestMove = new(0);
 
@@ -394,9 +393,11 @@ public class Game
 
             bestMove = pv.moves[0];
 
-            Console.Write($"Depth: {i} Score: {score} Nodes: {nodes} Time: {timer.ElapsedMilliseconds}ms nodes/s: {nodes * 1000 / (timer.ElapsedMilliseconds + 1)} ");
-
-            pv.Print();
+            if (SHOW_SEARCH)
+            {
+                Console.Write($"Depth: {i} Score: {score} Nodes: {nodes} Time: {timer.ElapsedMilliseconds}ms nodes/s: {nodes * 1000 / (timer.ElapsedMilliseconds + 1)} ");
+                pv.Print();
+            }
         }
 
         timer.Stop();
@@ -519,10 +520,13 @@ public class Game
 
     public void Turn()
     {
+
         if (board.sideToMove == computerSide)
             ComputerTurn();
         else
             PlayerTurn();
+
+        Console.Clear();
 
         Print();
 
@@ -544,7 +548,10 @@ public class Game
 
     public void SelfPlay()
     {
+
         ComputerTurn();
+
+        Console.Clear();
 
         Print();
 
@@ -569,6 +576,7 @@ public class Game
 
     public void ComputerTurn()
     {
+        Console.WriteLine("Calculating...");
         Move move = SearchPosition();
         MakeMove(move);
     }
@@ -592,7 +600,6 @@ public class Game
         {
             Console.WriteLine(parsed);
             MakeMove(parsed);
-
         }
     }
 
@@ -618,8 +625,10 @@ public class Game
             forceJump = true;
         Console.Write("Self Play? (y/n): ");
         string? selfPlay = Console.ReadLine();
+
         if (string.Equals(selfPlay, "y", StringComparison.OrdinalIgnoreCase))
         {
+            Print();
             while (true)
             {
                 SelfPlay();
@@ -645,6 +654,6 @@ public class Game
     {
         board.Print();
         Console.WriteLine("Side to move: " + board.sideToMove);
-        Console.WriteLine($"Hash key: {board.hash:x}");
+        // Console.WriteLine($"Hash key: {board.hash:x}");
     }
 }
