@@ -56,6 +56,7 @@ public class Game
     public const int INF = 50000;
     public const int MATE = INF - MAX_DEPTH;
     public const int INVALID_VAL = 50001;
+    public bool forceJump = false;
     public Board board = new Board();
     public int moveCount = 0;
     public int lastReversible = 0;
@@ -225,7 +226,7 @@ public class Game
 
     }
 
-    public int NegaMaxSearch(PVLine parentPV, int alpha, int beta, int depth)
+    public int NegaMaxSearch(PVLine parentPV, int alpha, int beta, int depth, bool cutNode = false)
     {
         if (depth <= 0)
             return QuiescenceSearch(parentPV, alpha, beta);
@@ -237,7 +238,7 @@ public class Game
             return 0;
 
         PVLine childPV = new();
-        bool pvNode = alpha + 1 < beta;
+        bool pvNode = alpha + 1 < beta && !cutNode;
         bool rootNode = depth == 0;
         Move bestMove = new(0);
         int value = -INF;
@@ -251,7 +252,7 @@ public class Game
         if (!rootNode && entry != null)
         {
             entry.Read(board, alpha, beta, ref bestMove, ref ttValue, ref boardEval, depth, ply);
-            if (ttValue != INVALID_VAL && ttValue >= alpha)
+            if (ttValue != INVALID_VAL && (!cutNode || ttValue <= alpha))
                 return ttValue;
 
             if (!pvNode && beta > -1500 && ttValue == INVALID_VAL && depth > 2 && ply >= 3)
@@ -273,7 +274,7 @@ public class Game
 
         MoveGen moveGen = new(board);
 
-        moveGen.GenerateMoves();
+        moveGen.GenerateMoves(forceJump);
 
         if (moveGen.moveList.count == 0)
             return -INF + ply;
@@ -304,11 +305,11 @@ public class Game
 
             bool doFullSearch;
 
-            if (depth >= 2 && moveCount > 1 && move.JumpLen() == 0)
+            if (depth >= 2 && moveCount > (rootNode ? 2 : 1) && move.JumpLen() == 0)
             {
-                int pvsDepth = (moveCount > 4) ? depth - 1 - ply / 2 : depth - 2;
+                int pvsDepth = (moveCount > 6) ? depth - 3 : depth - 2;
 
-                value = -NegaMaxSearch(childPV, -alpha - 1, -alpha, pvsDepth);
+                value = -NegaMaxSearch(childPV, -alpha - 1, -alpha, pvsDepth, true);
 
                 doFullSearch = value > alpha;
             }
@@ -316,7 +317,7 @@ public class Game
                 doFullSearch = !pvNode || moveCount > 1;
 
             if (doFullSearch)
-                value = -NegaMaxSearch(childPV, -alpha - 1, -alpha, depth - 1);
+                value = -NegaMaxSearch(childPV, -alpha - 1, -alpha, depth - 1, !cutNode);
 
             if (pvNode && (moveCount == 1 || value > alpha))
                 value = -NegaMaxSearch(childPV, -beta, -alpha, depth - 1);
@@ -369,7 +370,7 @@ public class Game
 
         PVLine pv = new();
 
-        for (int i = 1; i < 11; i++)
+        for (int i = 1; i < 13; i++)
         {
             int score = NegaMaxSearch(pv, -INF, INF, i);
 
@@ -411,7 +412,10 @@ public class Game
         int whiteDistToKing = Rank.R8 - Utils.Rank(Bitboard.MSB(board.wOcc));
         int blackDistToKing = Utils.Rank(Bitboard.LSB(board.bOcc)) - Rank.R1;
 
-        score += 10 * (whiteDistToKing - blackDistToKing);
+        bool isEndgame = Bitboard.PopCount((board.wOcc | board.bOcc) & ~board.kings) < 6;
+
+        if (!isEndgame)
+            score += 3 * (whiteDistToKing - blackDistToKing);
 
         // Estimate center control
         uint whiteCenter = board.wOcc & Board.MiddleRow;
@@ -423,21 +427,34 @@ public class Game
         uint whiteKingCenterBox = whiteKingCenter & Board.MiddleBox;
         uint blackKingCenterBox = blackKingCenter & Board.MiddleBox;
 
-        score += Bitboard.PopCount(whiteCenter) - Bitboard.PopCount(blackCenter);
-        score += Bitboard.PopCount(whiteKingCenter) - Bitboard.PopCount(blackKingCenter);
-        score += Bitboard.PopCount(whiteCenterBox) - Bitboard.PopCount(blackCenterBox);
-        score += Bitboard.PopCount(whiteKingCenterBox) - Bitboard.PopCount(blackKingCenterBox);
+        int centerScore = Bitboard.PopCount(whiteCenter) - Bitboard.PopCount(blackCenter);
+        centerScore += Bitboard.PopCount(whiteKingCenter) - Bitboard.PopCount(blackKingCenter);
+        centerScore += 2 * (Bitboard.PopCount(whiteCenterBox) - Bitboard.PopCount(blackCenterBox));
+        centerScore += 2 * (Bitboard.PopCount(whiteKingCenterBox) - Bitboard.PopCount(blackKingCenterBox));
+
+        if (isEndgame)
+            score += centerScore * 2;
+        else
+            score += centerScore;
+
+        Square whiteReprPiece = Bitboard.MSB(board.wOcc);
+        Square blackReprPiece = Bitboard.LSB(board.bOcc);
+
+        int dist = Math.Abs(Utils.Rank(whiteReprPiece) - Utils.Rank(blackReprPiece));
+
+        if (dist > 2 && isEndgame)
+            score -= 10 * dist;
 
         // Check for passers
         for (int i = (int)File.FA; i < (int)File.FH; i++)
         {
             uint potentialWhitePassers = board.wOcc & Board.RankMask[i];
             Square passer = Bitboard.MSB(potentialWhitePassers);
-            uint passedMask = Board.PassedMask[(int)Colour.White, (int)passer];
             if (passer == Square.NSquares)
                 continue;
+            uint passedMask = Board.PassedMask[(int)Colour.White, (int)passer];
             if ((passedMask & board.bOcc) == 0)
-                score += 5;
+                score += 10;
 
             uint potentialBlackPassers = board.bOcc & Board.RankMask[i];
             passer = Bitboard.LSB(potentialBlackPassers);
@@ -445,14 +462,28 @@ public class Game
                 continue;
             passedMask = Board.PassedMask[(int)Colour.Black, (int)passer];
             if ((passedMask & board.wOcc) == 0)
-                score -= 5;
+                score -= 10;
         }
+
+        // Check for majority
+        uint leftMask = Board.FileMask[(int)File.FA] | Board.FileMask[(int)File.FB] | Board.FileMask[(int)File.FC];
+        uint rightMask = Board.FileMask[(int)File.FH] | Board.FileMask[(int)File.FG] | Board.FileMask[(int)File.FH];
+
+        int whiteLeft = Bitboard.PopCount(board.wOcc & leftMask);
+        int whiteRight = Bitboard.PopCount(board.wOcc & rightMask);
+        int blackLeft = Bitboard.PopCount(board.bOcc & leftMask);
+        int blackRight = Bitboard.PopCount(board.bOcc & rightMask);
+
+        if (Math.Abs(whiteLeft - blackLeft) > 2)
+            score += 10 * (whiteLeft - blackLeft);
+        if (Math.Abs(whiteRight - blackRight) > 2)
+            score += 10 * (whiteRight - blackRight);
 
         // Check if piece is trapped in corner
         if (CheckCornerTrap(Square.A1, Square.A3, Square.C1, true))
-            score -= 10;
+            score -= 20;
         if (CheckCornerTrap(Square.H8, Square.H6, Square.F8, false))
-            score += 10;
+            score += 20;
 
         uint backward = board.wOcc >> 4 & ((board.wOcc & Board.Mask3) >> 3 | (board.wOcc & Board.Mask5) >> 5);
         int whiteThreatened = Bitboard.PopCount(backward & board.wOcc);
@@ -477,7 +508,7 @@ public class Game
         Print();
 
         MoveGen moveGen = new(board);
-        moveGen.GenerateMoves();
+        moveGen.GenerateMoves(forceJump);
 
         if (moveGen.moveList.count == 0)
         {
@@ -499,7 +530,7 @@ public class Game
         Print();
 
         MoveGen moveGen = new(board);
-        moveGen.GenerateMoves();
+        moveGen.GenerateMoves(forceJump);
 
         if (moveGen.moveList.count == 0)
         {
@@ -549,7 +580,7 @@ public class Game
     public Move ParseMove(string? move)
     {
         MoveGen moveGen = new(board);
-        moveGen.GenerateMoves();
+        moveGen.GenerateMoves(forceJump);
 
         for (int i = 0; i < moveGen.moveList.count; i++)
         {
@@ -562,6 +593,10 @@ public class Game
 
     public void Play()
     {
+        Console.Write("Force Jump (y/n): ");
+        string? result = Console.ReadLine();
+        if (string.Equals(result, "y", StringComparison.OrdinalIgnoreCase))
+            forceJump = true;
         Console.Write("Self Play? (y/n): ");
         string? selfPlay = Console.ReadLine();
         if (string.Equals(selfPlay, "y", StringComparison.OrdinalIgnoreCase))

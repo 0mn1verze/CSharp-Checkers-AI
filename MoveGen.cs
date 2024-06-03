@@ -171,16 +171,21 @@ public class MoveGen(Board board)
         }
     }
 
-    public void GenerateMoves()
+    public void GenerateMoves(bool forceJump = false)
+    {
+        GenerateJumps();
+        if (moveList.count == 0)
+            GenerateQuiets();
+    }
+
+    public void GenerateQuiets()
     {
         if (sideToMove == Colour.White)
         {
-            GenerateWhiteJumps();
             GenerateWhiteQuiet();
         }
         else
         {
-            GenerateBlackJumps();
             GenerateBlackQuiet();
         }
     }
