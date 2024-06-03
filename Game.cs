@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.VisualBasic;
 
 public class SearchStats
 {
@@ -56,6 +57,7 @@ public class Game
     public const int INF = 50000;
     public const int MATE = INF - MAX_DEPTH;
     public const int INVALID_VAL = 50001;
+    public const int TIME_ALLOWED = 2000;
     public bool forceJump = false;
     public Board board = new Board();
     public int moveCount = 0;
@@ -66,8 +68,8 @@ public class Game
     public long nodes;
     public Colour computerSide = Colour.Black;
     public SearchStats searchStats = new();
-
     public TranspositionTable TTable;
+    public Stopwatch timer = new();
 
     public Game()
     {
@@ -171,6 +173,8 @@ public class Game
 
     public void UnmakeMove() => board = history[--moveCount];
 
+    public bool TimesUp() => timer.ElapsedMilliseconds > TIME_ALLOWED;
+
     public int QuiescenceSearch(PVLine parentPV, int alpha, int beta)
     {
         PVLine childPV = new();
@@ -179,6 +183,9 @@ public class Game
             return Eval();
 
         if (board.movesSinceCapture >= 99)
+            return 0;
+
+        if (TimesUp())
             return 0;
 
         nodes++;
@@ -208,6 +215,9 @@ public class Game
 
             UnmakeMove();
 
+            if (TimesUp())
+                return 0;
+
             if (value > alpha)
             {
                 alpha = value;
@@ -235,6 +245,9 @@ public class Game
             return Eval();
 
         if (IsRepetition())
+            return 0;
+
+        if (TimesUp())
             return 0;
 
         PVLine childPV = new();
@@ -326,6 +339,9 @@ public class Game
 
             UnmakeMove();
 
+            if (TimesUp())
+                return 0;
+
             if (value > alpha)
             {
                 alpha = value;
@@ -365,22 +381,28 @@ public class Game
 
         Move bestMove = new(0);
 
-
-        var watch = Stopwatch.StartNew();
+        timer.Restart();
 
         PVLine pv = new();
 
-        for (int i = 1; i < 13; i++)
+        int i = 1;
+        while (true)
         {
             int score = NegaMaxSearch(pv, -INF, INF, i);
 
+            if (TimesUp())
+                break;
+
             bestMove = pv.moves[0];
 
-            Console.Write($"Depth: {i} Score: {score} Nodes: {nodes} Time: {watch.ElapsedMilliseconds}ms nodes/s: {nodes * 1000 / (watch.ElapsedMilliseconds + 1)} ");
+            Console.Write($"Depth: {i} Score: {score} Nodes: {nodes} Time: {timer.ElapsedMilliseconds}ms nodes/s: {nodes * 1000 / (timer.ElapsedMilliseconds + 1)} ");
+
             pv.Print();
+
+            i++;
         }
 
-        watch.Stop();
+        timer.Stop();
 
         return bestMove;
     }
