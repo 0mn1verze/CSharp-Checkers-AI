@@ -385,8 +385,7 @@ public class Game
 
         PVLine pv = new();
 
-        int i = 1;
-        while (true)
+        for (int i = 1; i <= MAX_DEPTH; i++)
         {
             int score = NegaMaxSearch(pv, -INF, INF, i);
 
@@ -398,8 +397,6 @@ public class Game
             Console.Write($"Depth: {i} Score: {score} Nodes: {nodes} Time: {timer.ElapsedMilliseconds}ms nodes/s: {nodes * 1000 / (timer.ElapsedMilliseconds + 1)} ");
 
             pv.Print();
-
-            i++;
         }
 
         timer.Stop();

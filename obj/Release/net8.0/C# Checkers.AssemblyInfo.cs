@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("C# Checkers")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+324410f4279f6adf276502663cd866380f85723e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f20735c2c400a12ac1f8e6f369c4f71f06edc56b")]
 [assembly: System.Reflection.AssemblyProductAttribute("C# Checkers")]
 [assembly: System.Reflection.AssemblyTitleAttribute("C# Checkers")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
