@@ -1,19 +1,20 @@
 using System.Net.NetworkInformation;
 
-public class MoveGen(Board board)
+public class MoveGen(Board board, bool forceJump = false)
 {
     public Board board = board;
     public Colour sideToMove = board.sideToMove;
     public MoveList moveList = new();
     public Move rootJump = new(0);
+    public bool forceJump = forceJump;
 
     public static int Offset(Direction direction) => Move.JumpAddDir[(int)direction];
     public static bool ValidDirection(Square from, Direction direction)
     {
-        if (from >= Square.A7 && Utils.isNorth(direction)) return false;
-        if (from <= Square.H2 && !Utils.isNorth(direction)) return false;
-        if ((int)from % 4 == 0 && !Utils.isEast(direction)) return false;
-        if ((int)from % 4 == 3 && Utils.isEast(direction)) return false;
+        if (from >= Square.A7 && Utils.IsNorth(direction)) return false;
+        if (from <= Square.H2 && !Utils.IsNorth(direction)) return false;
+        if ((int)from % 4 == 0 && !Utils.IsEast(direction)) return false;
+        if ((int)from % 4 == 3 && Utils.IsEast(direction)) return false;
         return true;
     }
     public int Forward() => (sideToMove == Colour.White) ? 0 : 2;
@@ -127,9 +128,9 @@ public class MoveGen(Board board)
             board.MovePiece(to, from);
         }
     }
-    public void AddSqDir(Square from, int pathIdx, Direction direction, bool isKing)
+    public int AddSqDir(Square from, int pathIdx, Direction direction, bool isKing)
     {
-        if (!ValidDirection(from, direction)) return;
+        if (!ValidDirection(from, direction)) return 0;
 
         uint Them = board.Occ(sideToMove ^ Colour.Black);
         uint Occ = board.wOcc | board.bOcc;
@@ -140,7 +141,9 @@ public class MoveGen(Board board)
         {
             rootJump.SetJumpDir(pathIdx, direction);
             FindSqJumps(to, jumpSquare, pathIdx + 1, isKing);
+            return 1;
         }
+        return 0;
     }
     public void FindSqJumps(Square from, Square jumpSquare, int pathIdx, bool isKing)
     {
@@ -148,16 +151,16 @@ public class MoveGen(Board board)
         uint oldPieces = board.Occ(enemy);
         board.Occ(enemy) ^= Bitboard.SquareBB(jumpSquare);
 
-        AddSqDir(from, pathIdx, Forward() + Direction.NE, isKing);
-        AddSqDir(from, pathIdx, Forward() + Direction.NW, isKing);
+        int jumps = AddSqDir(from, pathIdx, Forward() + Direction.NE, isKing) + AddSqDir(from, pathIdx, Forward() + Direction.NW, isKing);
 
         if (isKing)
         {
-            AddSqDir(from, pathIdx, Backward() + Direction.NE, isKing);
-            AddSqDir(from, pathIdx, Backward() + Direction.NW, isKing);
+            jumps += AddSqDir(from, pathIdx, Backward() + Direction.NE, isKing);
+            jumps += AddSqDir(from, pathIdx, Backward() + Direction.NW, isKing);
         }
 
-        moveList.AddJump(rootJump, pathIdx);
+        if (!forceJump || jumps == 0)
+            moveList.AddJump(rootJump, pathIdx);
 
         board.Occ(enemy) = oldPieces;
     }
@@ -171,10 +174,10 @@ public class MoveGen(Board board)
         }
     }
 
-    public void GenerateMoves(bool forceJump = false)
+    public void GenerateMoves()
     {
         GenerateJumps();
-        if (moveList.count == 0)
+        if (!forceJump || moveList.count == 0)
             GenerateQuiets();
     }
 

@@ -29,6 +29,7 @@ public class Move : ICloneable
         data |= (uint)jumpLen << 10;
     }
     public bool Equals(Move move) => data == move.data;
+    public bool IsValid() => data != 0;
     public Square GetFinalDestination()
     {
         Square sq = To();

@@ -57,7 +57,7 @@ public class Game
     public const int MATE = INF - MAX_DEPTH;
     public const int INVALID_VAL = 50001;
     public const int TIME_ALLOWED = 500;
-    public const bool SHOW_SEARCH = false;
+    public const bool SHOW_SEARCH = true;
     public bool forceJump = false;
     public Board board = new Board();
     public int moveCount = 0;
@@ -179,6 +179,8 @@ public class Game
     {
         PVLine childPV = new();
 
+        nodes++;
+
         if (ply >= MAX_DEPTH - 1)
             return Eval();
 
@@ -188,7 +190,12 @@ public class Game
         if (TimesUp())
             return 0;
 
-        nodes++;
+        int standPat = Eval();
+
+        if (standPat >= beta)
+            return beta;
+        if (alpha < standPat)
+            alpha = standPat;
 
         MoveGen moveGen = new(board);
 
@@ -199,8 +206,6 @@ public class Game
 
         moveGen.OrderMoves(searchStats, ply);
 
-        int value = Eval();
-
         for (int i = 0; i < moveGen.moveList.count; i++)
         {
             Move move = moveGen.moveList.moves[i];
@@ -209,7 +214,7 @@ public class Game
 
             ply++;
 
-            value = Math.Max(value, -QuiescenceSearch(childPV, -beta, -alpha));
+            int value = -QuiescenceSearch(childPV, -beta, -alpha);
 
             ply--;
 
@@ -232,12 +237,15 @@ public class Game
             }
         }
 
-        return value;
+        return alpha;
 
     }
 
     public int NegaMaxSearch(PVLine parentPV, int alpha, int beta, int depth, bool cutNode = false)
     {
+
+        nodes++;
+
         if (depth <= 0)
             return QuiescenceSearch(parentPV, alpha, beta);
 
@@ -257,8 +265,6 @@ public class Game
         int value = -INF;
         int ttValue = INVALID_VAL;
         int boardEval = INVALID_VAL;
-
-        nodes++;
 
         ref TTEntry entry = ref TTable.GetEntry(board);
 
@@ -285,9 +291,9 @@ public class Game
             }
         }
 
-        MoveGen moveGen = new(board);
+        MoveGen moveGen = new(board, forceJump);
 
-        moveGen.GenerateMoves(forceJump);
+        moveGen.GenerateMoves();
 
         if (moveGen.moveList.count == 0)
             return -INF + ply;
@@ -457,13 +463,38 @@ public class Game
         else
             score += centerScore;
 
-        Square whiteReprPiece = Bitboard.MSB(board.wOcc);
-        Square blackReprPiece = Bitboard.LSB(board.bOcc);
 
-        int dist = Math.Abs(Utils.Rank(whiteReprPiece) - Utils.Rank(blackReprPiece));
 
-        if (dist > 2 && isEndgame)
-            score -= 10 * dist;
+        if (isEndgame)
+        {
+
+            Square white1 = Bitboard.MSB(board.wOcc);
+            Square black1 = Bitboard.LSB(board.bOcc);
+            Square white2 = Bitboard.LSB(board.wOcc);
+            Square black2 = Bitboard.MSB(board.bOcc);
+
+            // Encourage kings to move closer to pieces
+            int dist1 = Utils.Distance(white1, black1);
+            int dist2 = Utils.Distance(white2, black2);
+            int dist3 = Utils.Distance(white1, black2);
+            int dist4 = Utils.Distance(white2, black1);
+
+            score += new int[] { dist1, dist2, dist3, dist4 }.Min() * 2;
+        }
+
+        // Evaluate mobility
+        uint nOcc = ~(board.wOcc | board.bOcc);
+
+        uint whiteMoverMask = nOcc >> 4 | (nOcc & Board.Mask3) >> 3 | (nOcc & Board.Mask5) >> 5;
+        uint blackMoverMask = nOcc << 4 | (nOcc & Board.Mask5) << 3 | (nOcc & Board.Mask3) << 5;
+
+        uint whiteMovers = (whiteMoverMask | blackMoverMask & board.kings) & board.wOcc;
+        uint blackMovers = (blackMoverMask | whiteMoverMask & board.kings) & board.bOcc;
+
+        int whiteMobility = Bitboard.PopCount(whiteMovers);
+        int blackMobility = Bitboard.PopCount(blackMovers);
+
+        score += whiteMobility - blackMobility;
 
         // Check for passers
         for (int i = (int)File.FA; i < (int)File.FH; i++)
@@ -530,8 +561,8 @@ public class Game
 
         Print();
 
-        MoveGen moveGen = new(board);
-        moveGen.GenerateMoves(forceJump);
+        MoveGen moveGen = new(board, forceJump);
+        moveGen.GenerateMoves();
 
         if (moveGen.moveList.count == 0)
         {
@@ -555,8 +586,8 @@ public class Game
 
         Print();
 
-        MoveGen moveGen = new(board);
-        moveGen.GenerateMoves(forceJump);
+        MoveGen moveGen = new(board, forceJump);
+        moveGen.GenerateMoves();
 
         if (moveGen.moveList.count == 0)
         {
@@ -569,9 +600,6 @@ public class Game
             Console.WriteLine("Draw");
             Environment.Exit(0);
         }
-
-        // Console.WriteLine("Press any key to continue");
-        // Console.ReadKey();
     }
 
     public void ComputerTurn()
@@ -605,8 +633,8 @@ public class Game
 
     public Move ParseMove(string? move)
     {
-        MoveGen moveGen = new(board);
-        moveGen.GenerateMoves(forceJump);
+        MoveGen moveGen = new(board, forceJump);
+        moveGen.GenerateMoves();
 
         for (int i = 0; i < moveGen.moveList.count; i++)
         {
